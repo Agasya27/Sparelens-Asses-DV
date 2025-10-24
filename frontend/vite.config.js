@@ -2,6 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  // For GitHub Pages, pass --base=/Sparelens-Asses-DV/ to the build command via CI.
+  // We avoid hardcoding base here to keep local dev simple.
   // Disable React Fast Refresh in dev to avoid eval/new Function, keeping CSP strict
   plugins: [react({ fastRefresh: false })],
   server: {
