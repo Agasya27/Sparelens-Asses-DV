@@ -24,6 +24,7 @@ class AggregateRequest(BaseModel):
     group_by: Optional[List[str]] = []
     metrics: List[MetricRequest]
     filters: Optional[Dict[str, Any]] = {}
+    search: Optional[str] = None
 
 
 class AggregateResponse(BaseModel):

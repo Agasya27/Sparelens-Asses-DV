@@ -1,4 +1,67 @@
+ # Node / frontend
+ frontend/node_modules/
+ frontend/.vite/
+ frontend/dist/
+ frontend/.eslintcache
+ 
+ # Python / backend
+ backend/.venv/
+ backend/venv/
+ **/__pycache__/
+ **/*.pyc
+ backend/.mypy_cache/
+ backend/.pytest_cache/
+ backend/app.db
+ backend/app/*.db
+ 
+ # Environment files
+ backend/.env
+ *.env
+ 
+ # Uploads and local data
+ uploads/
+ backend/uploads/
+ 
+ # OS / Editor
+ .DS_Store
+ Thumbs.db
+ .vscode/
+ .idea/
+ 
+ # Logs
+ *.log
+ 
+ # Coverage
+ .coverage
+ htmlcov/
+# Python
 __pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.venv/
+
+# Node/Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Environments and secrets
+.env
+backend/.env
+frontend/.env
+
+# Local DB and uploads
+app.db
+backend/app.db
+uploads/
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log__pycache__/
 *.py[cod]
 *$py.class
 *.so

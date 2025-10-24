@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any, List
 import json
 from ....core.database import get_db
 from ....core.deps import get_current_user
-from ....models.user import User
+from ....models.user import User, UserRole
 from ....models.file import File
 from ....schemas.data import RowsResponse, AggregateRequest, AggregateResponse, ColumnInfo
 from ....services.data_service import DataService
@@ -28,7 +29,7 @@ def get_rows(
     if not db_file:
         raise HTTPException(status_code=404, detail="File not found")
     
-    if current_user.role != "Admin" and db_file.user_id != current_user.id:
+    if current_user.role != UserRole.ADMIN and db_file.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this file")
     
     filters_dict = None
@@ -63,7 +64,7 @@ def aggregate_data(
     if not db_file:
         raise HTTPException(status_code=404, detail="File not found")
     
-    if current_user.role != "Admin" and db_file.user_id != current_user.id:
+    if current_user.role != UserRole.ADMIN and db_file.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this file")
     
     metrics = [{"col": m.col, "agg": m.agg} for m in request.metrics]
@@ -73,6 +74,7 @@ def aggregate_data(
         group_by=request.group_by or [],
         metrics=metrics,
         filters=request.filters,
+        search=request.search,
         db=db
     )
     
@@ -89,9 +91,53 @@ def get_columns(
     if not db_file:
         raise HTTPException(status_code=404, detail="File not found")
     
-    if current_user.role != "Admin" and db_file.user_id != current_user.id:
+    if current_user.role != UserRole.ADMIN and db_file.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this file")
     
     columns = DataService.get_columns(file_id, db)
     
     return [ColumnInfo(**col) for col in columns]
+
+
+@router.get("/{file_id}/export")
+def export_csv(
+    file_id: int,
+    search: Optional[str] = None,
+    filters: Optional[str] = None,
+    columns: Optional[str] = Query(None, description="Comma-separated columns to include"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    db_file = db.query(File).filter(File.id == file_id).first()
+    if not db_file:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    if current_user.role != UserRole.ADMIN and db_file.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this file")
+
+    filters_dict = None
+    if filters:
+        try:
+            filters_dict = json.loads(filters)
+        except:
+            pass
+
+    columns_list = None
+    if columns:
+        columns_list = [c.strip() for c in columns.split(',') if c.strip()]
+
+    csv_text = DataService.export_csv(
+        file_id=file_id,
+        db=db,
+        search=search,
+        filters=filters_dict,
+        columns=columns_list
+    )
+
+    return StreamingResponse(
+        iter([csv_text]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=export_{file_id}.csv"
+        }
+    )

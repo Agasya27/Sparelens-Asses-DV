@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -27,12 +27,13 @@ ChartJS.register(
 
 export default function Charts({ data }) {
   const [chartType, setChartType] = useState('bar');
+  const chartRef = useRef(null);
 
   const chartData = {
     labels: data.labels,
     datasets: [
       {
-        label: `Sum of ${data.numericCol}`,
+        label: data.datasetLabel || (data.numericCol ? `Sum of ${data.numericCol}` : 'Count'),
         data: data.values,
         backgroundColor: [
           'rgba(54, 162, 235, 0.6)',
@@ -64,9 +65,49 @@ export default function Charts({ data }) {
       },
       title: {
         display: true,
-        text: `${data.stringCol} vs ${data.numericCol}`,
+        text: data.numericCol ? `${data.stringCol} vs ${data.numericCol}` : `${data.stringCol} (Count)`,
       },
     },
+  };
+
+  const handleDownload = () => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    try {
+      const url = chart.toBase64Image();
+      const a = document.createElement('a');
+      a.href = url;
+      const name = `${(data.datasetLabel || data.numericCol || 'count')}-${data.stringCol || 'chart'}`.replace(/\s+/g, '-');
+      a.download = `${name}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (_e) {
+      void _e; // ignore
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    // Dynamically import to avoid increasing main bundle size
+    const { jsPDF } = await import('jspdf');
+    try {
+      const url = chart.toBase64Image();
+      // Create landscape PDF and fit the image
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      // Reserve some margin
+      const margin = 24;
+      const w = pageWidth - margin * 2;
+      const h = pageHeight - margin * 2;
+      pdf.addImage(url, 'PNG', margin, margin, w, h);
+      const name = `${(data.datasetLabel || data.numericCol || 'count')}-${data.stringCol || 'chart'}`.replace(/\s+/g, '-');
+      pdf.save(`${name}.pdf`);
+    } catch (_e) {
+      void _e; // ignore
+    }
   };
 
   return (
@@ -104,10 +145,28 @@ export default function Charts({ data }) {
         </button>
       </div>
 
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <div />
+        <div className="flex gap-2">
+          <button
+            onClick={handleDownload}
+            className="px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700"
+          >
+            Download PNG
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            className="px-3 py-1.5 rounded bg-purple-600 text-white hover:bg-purple-700"
+          >
+            Download PDF
+          </button>
+        </div>
+      </div>
+
       <div style={{ height: '400px' }}>
-        {chartType === 'bar' && <Bar data={chartData} options={options} />}
-        {chartType === 'line' && <Line data={chartData} options={options} />}
-        {chartType === 'pie' && <Pie data={chartData} options={options} />}
+        {chartType === 'bar' && <Bar ref={chartRef} data={chartData} options={options} />}
+        {chartType === 'line' && <Line ref={chartRef} data={chartData} options={options} />}
+        {chartType === 'pie' && <Pie ref={chartRef} data={chartData} options={options} />}
       </div>
     </div>
   );

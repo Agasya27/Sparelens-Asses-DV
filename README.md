@@ -9,6 +9,7 @@ A full-stack web application for uploading, analyzing, and visualizing CSV/Excel
 - **Data Management**: Store and manage uploaded files with metadata
 - **Interactive Tables**: Server-side pagination, sorting, searching, and column-level filtering
 - **Dynamic Charts**: Bar, Line, and Pie charts with real-time updates based on filters
+- **Export**: Download filtered data as CSV and charts as PNG
 - **Theme Support**: Light/Dark mode toggle with localStorage persistence
 - **Role-Based Access**: Admins can view all files, Members see only their own uploads
 
@@ -16,7 +17,7 @@ A full-stack web application for uploading, analyzing, and visualizing CSV/Excel
 
 ### Backend (FastAPI + Python)
 - **Framework**: FastAPI with uvicorn ASGI server
-- **Database**: PostgreSQL with SQLAlchemy ORM
+- **Database**: SQLite by default (SQLAlchemy ORM). PostgreSQL optional via `DATABASE_URL`.
 - **Authentication**: JWT tokens with bcrypt password hashing
 - **File Processing**: pandas for CSV/Excel parsing and data manipulation
 - **API Structure**: RESTful endpoints at `/api/v1/`
@@ -60,33 +61,60 @@ A full-stack web application for uploading, analyzing, and visualizing CSV/Excel
 - `GET /api/v1/data/{file_id}/rows` - Get rows with pagination, sorting, filtering
 - `POST /api/v1/data/{file_id}/aggregate` - Get aggregated data for charts
 - `GET /api/v1/data/{file_id}/columns` - Get column information with types
+  
+### AI
+Feature removed.
 
 ### Health
 - `GET /api/v1/health` - API health check
 
 ## Environment Variables
 
-Create a `.env` file in the `backend` directory:
+Create a `.env` file in the `backend` directory (defaults are safe for local dev):
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost/dbname
-JWT_SECRET_KEY=your-secret-key-here
+DATABASE_URL=sqlite:///./app.db
+JWT_SECRET_KEY=change-me
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 UPLOAD_DIR=../uploads
+
+# CORS (development): set DEV_CORS=true to allow all origins (do NOT use in production)
+DEV_CORS=false
+# Optional extra origins (comma-separated) for production
+CORS_EXTRA_ORIGINS=
+
+# Optional: Bootstrap an admin user at startup if none exists
+ADMIN_EMAIL=
+ADMIN_PASSWORD=
+ADMIN_USERNAME=admin
+ADMIN_OVERWRITE=false
 ```
 
 ## Setup and Installation
 
 ### Prerequisites
 - Python 3.11+
-- Node.js 20+
-- PostgreSQL database
+- Node.js 18+
+- PostgreSQL (optional; SQLite is default)
 
 ### Backend Setup
 
+Windows (PowerShell):
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+macOS/Linux:
+
 ```bash
 cd backend
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -99,17 +127,10 @@ npm install
 
 ## Running the Application
 
-### Option 1: Run Both Services (Recommended for Replit)
-
-```bash
-chmod +x start_all.sh
-./start_all.sh
-```
-
-### Option 2: Run Separately
+### Run Backend and Frontend (separate terminals)
 
 **Terminal 1 - Backend:**
-```bash
+```powershell
 cd backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -125,6 +146,8 @@ The application will be available at:
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 
+Note: During development, the frontend uses a Vite dev proxy so API calls to `/api` automatically forward to `http://127.0.0.1:8000`. Do not set `VITE_API_URL` during local dev unless you intentionally want to target a different backend.
+
 ## Usage Guide
 
 1. **Sign Up**: Create an account (default role: Member)
@@ -134,6 +157,7 @@ The application will be available at:
    - Interactive data table with filtering and sorting
    - Dynamic charts (Bar, Line, Pie)
    - Real-time chart updates when table filters change
+   - Download the chart as PNG or PDF
 5. **Manage Files**: View all your files and delete as needed
 
 ## Sample Data
@@ -151,7 +175,7 @@ All data operations (filtering, sorting, aggregation) are performed server-side 
 
 ### File Storage
 - Uploaded files are stored in the filesystem (`uploads/` directory)
-- Parsed data is stored in PostgreSQL as JSON for flexible schema support
+- Parsed rows are stored in the database using a JSON column for flexible schema support
 
 ### Chart Data
 Charts are generated from backend aggregation endpoints, ensuring data consistency and supporting complex aggregations.
@@ -168,19 +192,18 @@ Charts are generated from backend aggregation endpoints, ensuring data consisten
 ## Technology Stack
 
 **Backend:**
-- FastAPI 0.104.1
-- SQLAlchemy 2.0.23
-- pandas 2.1.3
-- python-jose 3.3.0
-- passlib 1.7.4
+- FastAPI
+- SQLAlchemy
+- pandas
+- python-jose
+- passlib[bcrypt]
 
 **Frontend:**
-- React 19.1.1
-- Vite 7.1.7
-- React Router 6.22.0
-- Chart.js 4.4.1
-- Tailwind CSS 3.4.0
-- Axios 1.6.5
+- React + Vite
+- React Router
+- Chart.js + react-chartjs-2
+- Tailwind CSS
+- Axios
 
 ## Project Structure
 
@@ -220,7 +243,6 @@ Charts are generated from backend aggregation endpoints, ensuring data consisten
 
 ## Future Enhancements
 
-- CSV export of filtered data
 - Background job processing for large files
 - Row-level editing
 - Advanced chart customization
@@ -228,10 +250,11 @@ Charts are generated from backend aggregation endpoints, ensuring data consisten
 - Data caching for improved performance
 - Webhooks for data updates
 
-## License
 
-MIT License
 
-## Support
+## Deployment notes (Render or similar)
 
-For issues or questions, please open an issue in the repository.
+- Create two services: a Python web service for the FastAPI backend and a static site for the Vite-built frontend.
+- Ensure the backend exposes port 8000 and serves the FastAPI app. Set environment variables from `.env` (do not enable `DEV_CORS` in production).
+- Configure the frontend to point to the backend by setting `VITE_API_URL` to your backend URL (e.g., `https://your-backend.onrender.com`).
+- Add a persistent disk or volume for SQLite database and uploads if you need to preserve data across deploys. Mount it and set `DATABASE_URL` and `UPLOAD_DIR` accordingly.

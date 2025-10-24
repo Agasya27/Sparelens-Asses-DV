@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { filesAPI } from '../services/api';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -13,6 +14,21 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  const goToDashboard = async () => {
+    try {
+      // Try to open the most recent/first file; fallback to files list
+      const res = await filesAPI.getFiles(1, 1);
+      const first = res?.data?.files?.[0];
+      if (first?.id) {
+        navigate(`/dashboard/${first.id}`);
+      } else {
+        navigate('/files');
+      }
+    } catch {
+      navigate('/files');
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -20,9 +36,9 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center gap-4">
-            <Link to="/files" className="text-xl font-bold text-blue-600">
+            <button onClick={goToDashboard} className="text-left text-xl font-bold text-blue-600">
               Data Dashboard
-            </Link>
+            </button>
             <Link
               to="/files"
               className="text-gray-700 dark:text-gray-300 hover:text-blue-600"

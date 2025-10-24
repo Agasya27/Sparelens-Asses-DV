@@ -1,8 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { dataAPI, filesAPI } from '../services/api';
 import DataTable from '../components/DataTable';
 import Charts from '../components/Charts';
+// AskAI removed
 
 export default function Dashboard() {
   const { fileId } = useParams();
@@ -11,13 +13,14 @@ export default function Dashboard() {
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(50);
   const [sortBy, setSortBy] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({});
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Ask AI removed
 
   useEffect(() => {
     loadFileInfo();
@@ -26,13 +29,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadRows();
-  }, [fileId, page, sortBy, sortDir, search, filters]);
+  }, [fileId, page, pageSize, sortBy, sortDir, search, filters]);
 
   useEffect(() => {
     if (columns.length > 0) {
       loadChartData();
     }
-  }, [columns, filters]);
+  }, [columns, filters, search]);
 
   const loadFileInfo = async () => {
     try {
@@ -77,24 +80,61 @@ export default function Dashboard() {
   const loadChartData = async () => {
     try {
       const numericCol = columns.find(c => c.type === 'number');
-      const stringCol = columns.find(c => c.type === 'string');
+      // Prefer a string column; fall back to date; finally any column name
+      const dimCol = (columns.find(c => c.type === 'string') || columns.find(c => c.type === 'date') || columns[0]);
+      if (!dimCol) return;
 
-      if (!numericCol || !stringCol) return;
+      let metrics;
+      let valueKey;
+      let datasetLabel;
+      if (numericCol) {
+        metrics = [{ col: numericCol.name, agg: 'sum' }];
+        valueKey = `${numericCol.name}_sum`;
+        datasetLabel = `Sum of ${numericCol.name}`;
+      } else {
+        // No numeric column detected: use count aggregate
+        metrics = [{ col: dimCol.name, agg: 'count' }];
+        valueKey = `${dimCol.name}_count`;
+        datasetLabel = `Count by ${dimCol.name}`;
+      }
 
       const response = await dataAPI.aggregate(fileId, {
-        group_by: [stringCol.name],
-        metrics: [{ col: numericCol.name, agg: 'sum' }],
-        filters
+        group_by: [dimCol.name],
+        metrics,
+        filters,
+        search: search || undefined
       });
 
       setChartData({
-        labels: response.data.data.map(d => d[stringCol.name]),
-        values: response.data.data.map(d => d[`${numericCol.name}_sum`]),
-        numericCol: numericCol.name,
-        stringCol: stringCol.name
+        labels: response.data.data.map(d => d[dimCol.name]),
+        values: response.data.data.map(d => d[valueKey] ?? 0),
+        numericCol: numericCol?.name || null,
+        stringCol: dimCol.name,
+        datasetLabel,
       });
     } catch (err) {
       console.error('Failed to load chart data:', err);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const params = {
+        search: search || undefined,
+        filters: Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined,
+      };
+      const res = await dataAPI.exportCSV(fileId, params);
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `export_${fileId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed', err);
     }
   };
 
@@ -121,6 +161,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto">
+      {/* AI status banner removed */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           {file?.filename}
@@ -130,7 +171,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 flex gap-3 items-center">
         <input
           type="text"
           placeholder="Search across all columns..."
@@ -138,6 +179,13 @@ export default function Dashboard() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
         />
+        <button
+          onClick={handleExport}
+          className="whitespace-nowrap bg-gray-200 dark:bg-gray-700 dark:text-gray-100 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+        >
+          Export CSV
+        </button>
+        {/* Ask AI button removed */}
       </div>
 
       {chartData && (
@@ -145,6 +193,17 @@ export default function Dashboard() {
           <Charts data={chartData} />
         </div>
       )}
+
+      <div className="flex justify-end items-center mb-3">
+        <label className="text-sm text-gray-700 dark:text-gray-300 mr-2">Rows per page</label>
+        <select
+          value={pageSize}
+          onChange={(e) => { setPage(1); setPageSize(Number(e.target.value)); }}
+          className="px-2 py-1 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600"
+        >
+          {[10,25,50,100,200].map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+      </div>
 
       <DataTable
         columns={columns}
@@ -160,6 +219,8 @@ export default function Dashboard() {
         filters={filters}
         loading={loading}
       />
+
+      {/* AskAI modal removed */}
     </div>
   );
 }

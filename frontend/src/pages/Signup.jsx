@@ -20,7 +20,16 @@ export default function Signup() {
       await signup(username, email, password);
       navigate('/files');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Signup failed');
+      const detail = err.response?.data?.detail;
+      let message = 'Signup failed';
+      if (Array.isArray(detail)) {
+        message = detail.map((d) => d?.msg || d).join('; ');
+      } else if (typeof detail === 'string') {
+        message = detail;
+      } else if (err.message) {
+        message = err.message;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -76,7 +85,7 @@ export default function Signup() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
               required
-              minLength={6}
+              minLength={8}
             />
           </div>
 

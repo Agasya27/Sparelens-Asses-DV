@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { filesAPI } from '../services/api';
 
@@ -8,29 +8,35 @@ export default function FilesList() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadFiles();
-  }, []);
-
-  const loadFiles = async () => {
+  const loadFiles = useCallback(async () => {
     try {
       const response = await filesAPI.getFiles(1, 100);
       setFiles(response.data.files);
-    } catch (err) {
-      setError('Failed to load files');
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+        // Do not navigate here; global interceptor handles redirect when appropriate
+      } else {
+        const detail = error?.response?.data?.detail;
+        setError(detail ? `Failed to load files: ${detail}` : 'Failed to load files');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadFiles();
+  }, [loadFiles]);
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this file?')) return;
-    
+    if (!window.confirm('Are you sure you want to delete this file?')) return;
+
     try {
       await filesAPI.deleteFile(id);
-      setFiles(files.filter(f => f.id !== id));
-    } catch (err) {
-      alert('Failed to delete file');
+      setFiles((prev) => prev.filter((f) => f.id !== id));
+    } catch (error) {
+      setError(error?.response?.data?.detail || 'Failed to delete file');
     }
   };
 

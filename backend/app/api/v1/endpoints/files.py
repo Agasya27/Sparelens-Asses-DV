@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from ....core.database import get_db
 from ....core.deps import get_current_user
-from ....models.user import User
+from ....models.user import User, UserRole
 from ....models.file import File as FileModel
 from ....schemas.file import FileUploadResponse, FileResponse, FileListResponse
 from ....services.file_service import FileService
@@ -37,7 +37,8 @@ def get_files(
 ):
     query = db.query(FileModel)
     
-    if current_user.role != "Admin":
+    # Only admins can see all files; members see their own
+    if current_user.role != UserRole.ADMIN:
         query = query.filter(FileModel.user_id == current_user.id)
     
     total = query.count()
@@ -73,7 +74,7 @@ def delete_file(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    is_admin = current_user.role == "Admin"
+    is_admin = current_user.role == UserRole.ADMIN
     FileService.delete_file(file_id, current_user.id, is_admin, db)
     
     return {"message": "File deleted successfully"}
