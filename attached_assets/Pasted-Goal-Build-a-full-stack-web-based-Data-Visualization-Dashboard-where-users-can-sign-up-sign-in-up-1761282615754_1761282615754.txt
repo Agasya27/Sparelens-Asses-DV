@@ -1,0 +1,257 @@
+Goal: Build a full-stack, web-based Data Visualization Dashboard where users can sign up/sign in, upload CSV/Excel files, view data as interactive tables and charts, filter data (table + charts update together), and manage their files. Backend must handle all parsing/filtering/aggregation. Deliver a GitHub repo and a short demo video.
+
+Paste this prompt into Replit (or give it to a developer) to start the project.
+
+High-level requirements
+
+Frontend: React (create-react-app / Vite) — responsive dashboard UI.
+
+Backend: FastAPI (Python) — RESTful API, authentication, file parsing, filtering, chart-data endpoints.
+
+Database: SQLite (recommended for Replit) or PostgreSQL / MongoDB if you prefer. Persist users, uploaded file metadata, parsed table rows (or references), roles.
+
+Storage: Save uploaded files to the Replit filesystem (or DB as BLOB) and parsed rows to DB.
+
+Authentication: Secure signup/signin with password hashing + JWT access tokens.
+
+Data processing: All parsing, filtering, aggregation, transforms occur in the backend.
+
+Visualizations: Bar, Line, Pie charts (use charting library such as Chart.js / Recharts / ECharts).
+
+Table: Paginated, sortable, searchable, column filters; selecting filters updates charts and table.
+
+Deliverables: GitHub repo + short screencast (no voiceover required) showing flows.
+
+Replit dev prompt (copy/paste)
+
+Build a complete Data Visualization Dashboard web app using React (frontend) and FastAPI (backend). Use SQLite for storage. Implement secure user accounts (signup/signin with JWT), upload of CSV/Excel files, server-side parsing into a normalized DB schema, and endpoints supporting pagination, sorting, searching, column-level filtering, and aggregation for charts. The frontend must show interactive tables and charts that update together when filters are applied. Include role-based access ("Admin"/"Member") and a Light/Dark theme toggle as bonus. Document the repo, provide instructions to run locally and in Replit, and record a short demo video.
+
+Minimal API specification (include in repo)
+
+Base path: /api/v1
+
+Auth
+
+POST /api/v1/auth/signup — {username,email,password} → create user (role default Member).
+
+POST /api/v1/auth/login — {email,password} → {access_token, token_type, user}.
+
+User
+
+GET /api/v1/users/me — return current user.
+
+GET /api/v1/users — Admin only: list users.
+
+Files / Data
+
+POST /api/v1/files/upload — multipart form upload (file) → save file, parse on server, store metadata + parsed rows. Return file id / name / summary (row count, columns).
+
+GET /api/v1/files — list uploaded files (paginated).
+
+GET /api/v1/files/{file_id} — file metadata + columns.
+
+DELETE /api/v1/files/{file_id} — delete file + parsed rows (auth + role check).
+
+Data browsing / filtering / charts
+
+GET /api/v1/data/{file_id}/rows — query params: page, page_size, sort_by, sort_dir, search, filters (JSON or repeatable query param). Returns paginated rows and total count.
+
+POST /api/v1/data/{file_id}/aggregate — body: {group_by: [col], metrics: [{col, agg: "sum|avg|min|max|count"}], filters} → returns aggregated results for charts.
+
+GET /api/v1/data/{file_id}/columns — returns columns with inferred types (number/string/date) and sample values.
+
+Health / Misc
+
+GET /api/v1/health — simple health check.
+
+Suggested database schema
+
+users — id, username, email, password_hash, role (Admin|Member), created_at.
+
+files — id, user_id, filename, storage_path, uploaded_at, row_count, columns_json (names + types).
+
+rows — id, file_id, raw_json (or normalized columns as separate columns if schema known).
+For performance with variable columns, store parsed rows as JSON in rows.raw_json and index key columns you plan to filter on.
+
+audit_logs (optional) — record uploads / deletes.
+
+Note: On SQLite you can use a rows table with a JSON column and create virtual columns / JSON indices for frequently filtered columns.
+
+Backend implementation notes (FastAPI)
+
+Use pydantic models for request/response validation.
+
+Use sqlalchemy or tortoise-orm to interact with DB.
+
+Passwords: bcrypt or passlib.
+
+JWT: pyjwt or python-jose with access token expiration, refresh token optional.
+
+File parsing: use pandas.read_csv and pandas.read_excel for robust parsing; infer dtypes; sanitize header names.
+
+All filtering/aggregation should be performed on the server side (SQL queries or pandas before responding).
+
+Implement rate limits & error handling (consistent error responses).
+
+Provide CORS settings to allow the React app to call the API.
+
+Include unit tests for key endpoints (auth, upload, data retrieval).
+
+Frontend implementation notes (React)
+
+Use React Router — pages:
+
+Login / Signup
+
+Upload page (drag & drop + click)
+
+Files list / file details
+
+Dashboard (table + charts + filters)
+
+Admin panel (if role=Admin)
+
+Table features: pagination, server-side sorting, column search, global search. Use libraries (react-table or MUI DataGrid) or custom component.
+
+Charts: use Chart.js (react-chartjs-2), Recharts, or ECharts. Charts must be driven by API aggregation endpoints (not computed in browser).
+
+Filters UI: column-based filters (text, numeric range, date range, select). Filters should be serializable and sent to backend.
+
+Theme: Light/Dark toggle persisted in localStorage.
+
+Store JWT in memory + secure cookie or localStorage (explain tradeoffs in README).
+
+Show upload progress and parsing summary (row count, columns detected).
+
+Provide a small sample dataset download link in the UI for quick testing.
+
+Replit-specific run instructions (add to README)
+
+Root contains backend/ and frontend/.
+
+Start backend:
+
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+
+Start frontend:
+
+cd frontend
+npm install
+npm run dev   # or npm start
+
+
+Or run both using concurrently or a start.sh script. Provide a single Run command for Replit in .replit file such as:
+
+sh start_all.sh
+
+
+where start_all.sh & backgrounds processes as Replit expects (but test on Replit).
+
+Environment variables to document
+
+DATABASE_URL (sqlite:///./app.db or postgres url)
+
+JWT_SECRET_KEY
+
+ACCESS_TOKEN_EXPIRE_MINUTES
+
+ALGORITHM (e.g., HS256)
+
+Any storage path config: UPLOAD_DIR
+
+Add a .env.example file.
+
+Acceptance checklist (what the reviewer will test)
+
+ Signup + Login flow works; JWT is issued and used to access protected endpoints.
+
+ Upload CSV/Excel works; backend parses file and stores metadata + rows.
+
+ Table: pagination, sorting, searching, column filters work and reflect server-side results.
+
+ Charts update when filters change; charts are generated from backend aggregation.
+
+ Data transformations/aggregation done server-side (verify with sample large dataset).
+
+ API follows RESTful conventions and returns consistent error payloads.
+
+ README contains setup, run instructions, API docs (endpoints), architecture, and assumptions.
+
+ GitHub repo link included in submission.
+
+ A short demo video (no voiceover) demonstrating the flows (signup, upload, filter, charts).
+
+Bonus (try to implement if time allows)
+
+Role-based access control (Admin can see/manage all uploads; Member only their own).
+
+Light/Dark theme toggle with persisted preference.
+
+CSV/Excel column type inference (number/date/string) and special visual hints.
+
+Export filtered dataset as CSV.
+
+Row-level edit UI that updates DB.
+
+Background parsing job (e.g., Celery) for very large files (optional).
+
+Example sample dataset suggestions (pick one)
+
+Sales data (date, product, category, region, quantity, revenue)
+
+COVID-19 daily cases by region
+
+Stock prices sample (date, ticker, open, close, volume)
+
+Movie dataset (title, year, genre, rating, revenue)
+
+Use a dataset that has at least one numeric column (for aggregation) and one categorical column (for grouping).
+
+Deliverables checklist to include in repo
+
+README.md — project overview, architecture, assumptions, setup + run commands, environment variables, API endpoints.
+
+backend/ — FastAPI project + tests.
+
+frontend/ — React project.
+
+sample_data/ — one or two CSV/Excel sample files.
+
+demo.mp4 — short screen recording (30–90s) showing: signup, upload, table interactions, filters, charts.
+
+.replit and start_all.sh — to run both frontend & backend in Replit.
+
+LICENSE — MIT or your chosen license.
+
+Notes / Assumptions (state these in README)
+
+Single-file-table per upload (each uploaded file becomes one dataset).
+
+Files saved to server filesystem; parsed rows stored in DB as JSON records (unless a fixed schema is required).
+
+Small-medium datasets; for very large datasets consider chunked parsing, streaming, or background jobs (recommended but optional).
+
+Suggested milestone plan (for developer)
+
+Setup repo, create FastAPI skeleton, DB models, and auth.
+
+Add file upload + parsing and basic rows storage.
+
+Create frontend login + upload pages.
+
+Implement data listing endpoint + simple table in frontend.
+
+Add server-side filtering and chart aggregation endpoints; connect charts.
+
+Polish UI, error handling, tests, README, demo video.
+
+Testing / evaluation tips
+
+Provide a Postman/Insomnia collection or curl examples for key API flows.
+
+Include example API calls to fetch paginated rows and aggregated chart data.
+
+Add unit tests for parsing correctness (e.g., headers detected, dtypes), authentication, and data endpoints.
