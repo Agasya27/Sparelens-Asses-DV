@@ -76,6 +76,12 @@ DataVizDash/
         ├── assets/              # Static assets
         └── utils/               # (Reserved) utility helpers
 ```
+## Run Command
+- Terminal-1:-cd frontend
+npm run dev.
+- Terminal-2:- cd c:\Users\ASUS\Downloads\DataVizDash\DataVizDash\backend
+if (Test-Path .\.venv\Scripts\Activate.ps1) { . .\.venv\Scripts\Activate.ps1 }
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload.
 
 ## Backend overview
 
