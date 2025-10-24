@@ -1,0 +1,21 @@
+Date,Product,Category,Region,Quantity,Revenue
+2024-01-15,Laptop,Electronics,North,5,4500
+2024-01-16,Mouse,Electronics,South,15,300
+2024-01-17,Desk Chair,Furniture,East,8,2400
+2024-01-18,Monitor,Electronics,West,12,3600
+2024-01-19,Keyboard,Electronics,North,20,600
+2024-01-20,Desk Lamp,Furniture,South,10,500
+2024-01-21,Laptop,Electronics,East,3,2700
+2024-01-22,Mouse,Electronics,North,25,500
+2024-01-23,Desk Chair,Furniture,West,6,1800
+2024-01-24,Monitor,Electronics,South,8,2400
+2024-01-25,Keyboard,Electronics,East,18,540
+2024-01-26,Desk Lamp,Furniture,North,12,600
+2024-01-27,Laptop,Electronics,West,7,6300
+2024-01-28,Mouse,Electronics,South,22,440
+2024-01-29,Desk Chair,Furniture,North,9,2700
+2024-01-30,Monitor,Electronics,East,11,3300
+2024-02-01,Keyboard,Electronics,West,16,480
+2024-02-02,Desk Lamp,Furniture,South,14,700
+2024-02-03,Laptop,Electronics,North,4,3600
+2024-02-04,Mouse,Electronics,East,19,380
